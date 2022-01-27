@@ -5,84 +5,115 @@ const { Controller } = require('egg');
 module.exports = class PropertyValuesController extends Controller {
   async index() {
     const { ctx, app } = this;
+    const { query, helper } = ctx;
+    const errors = app.validator.validate({
+      current: {
+        type: 'int',
+        convertType: 'int',
+        default: 1,
+      },
+      pageSize: {
+        type: 'int',
+        convertType: 'int',
+        default: 10,
+      },
+      code: {
+        type: 'string',
+        trim: true,
+      },
+      name: {
+        type: 'string',
+        trim: true,
+      },
+    }, query);
+    const hasValidationError = !!errors;
+    if (hasValidationError) {
+      helper.createFailJSONResponse(ctx, 400, `请求参数不匹配！错误原因:${JSON.stringify(errors)}`);
+      return;
+    }
+    const { current, pageSize } = query;
     try {
-      const { query, helper } = ctx;
-      const queryParam = app.validator.validate({
-        page: {
-          type: 'int',
-          default: 1,
-        },
-        pageSize: {
-          type: 'int',
-        },
-      }, query);
-      const { page, pageSize } = query;
-      // TODO: 通过社区中的框架来解决接口入参的校验
-      // if (!(page && Number.isInteger(Number(page)))) {
-      //   return helper.createFailJSONResponse(ctx, 400, 'page参数为空或者不合法');
-      // }
-      // if (!(pageSize && Number.isInteger(Number(pageSize)))) {
-      //   return helper.createFailJSONResponse(ctx, 400, 'pageSize参数为空或者不合法');
-      // }
-
-      const fixedPage = Number(page);
-      const fixedPageSize = Number(pageSize);
-      const { total, list } = await ctx.service.propertyValue.select({
+      const { count, rows } = await ctx.service.propertyValue.select({
         ...query,
-        page: fixedPage,
-        pageSize: fixedPageSize,
+        current,
+        pageSize,
       });
-      ctx.helper.createSuccessJSONResponse(ctx, 200, {
-        page: fixedPage,
-        pageSize: fixedPageSize,
-        list,
-        total,
+      helper.createSuccessJSONResponse(ctx, 200, {
+        current,
+        pageSize,
+        list: rows,
+        total: count,
       });
     } catch (error) {
       console.error(error);
-      ctx.helper.createFailJSONResponse(ctx, 500, '属性值列表查询错误');
-    }
-  }
-  async allList() {
-    const { ctx } = this;
-    try {
-      const list = await ctx.service.propertyValue.select();
-      ctx.helper.createSuccessJSONResponse(ctx, 200, list);
-    } catch (error) {
-      ctx.helper.createFailJSONResponse(ctx, 500, '属性值列表获取错误');
+      helper.createFailJSONResponse(ctx, 500, `属性值列表查询错误！错误原因：${error.toString()}`);
     }
   }
   async show() {
-    const { ctx } = this;
+    const { ctx, app } = this;
+    const { params, helper } = ctx;
+    const errors = app.validator.validate({
+      code: { type: 'string' },
+    }, params);
+    const hasValidationError = !!errors;
+    if (hasValidationError) {
+      helper.createFailJSONResponse(ctx, 400, `请求参数不匹配！错误原因:${JSON.stringify(errors)}`);
+      return;
+    }
+    const { code } = ctx.params;
     try {
-      const { code } = ctx.params;
       const item = await ctx.service.propertyValue.get(code);
       ctx.helper.createSuccessJSONResponse(ctx, 200, item);
     } catch (error) {
-      ctx.helper.createFailJSONResponse(ctx, 500, '属性值获取错误');
+      ctx.helper.createFailJSONResponse(ctx, 500, `属性值获取错误！错误原因：${error.toString()}`);
     }
   }
   async create() {
-    const { ctx } = this;
+    const { ctx, app } = this;
+    const { request: { body }, helper } = ctx;
+    const errors = app.validator.validate({
+      name: {
+        type: 'string',
+        trim: true,
+      },
+      remark: {
+        type: 'string',
+        trim: true,
+      },
+    }, body);
+    const hasValidationError = !!errors;
+    if (hasValidationError) {
+      helper.createFailJSONResponse(ctx, 400, '请求参数不匹配！错误原因:' + JSON.stringify(errors));
+      return;
+    }
+    const { name, remark } = ctx.request.body;
     try {
-      const { name, remark } = ctx.request.body;
       const code = await ctx.service.propertyValue.insert({
         name,
         remark,
       });
       ctx.helper.createSuccessJSONResponse(ctx, 201, code);
     } catch (error) {
-      ctx.helper.createFailJSONResponse(ctx, 500, '属性值创建错误');
+      ctx.helper.createFailJSONResponse(ctx, 500, `属性值创建错误！错误原因：${error.toString()}`);
     }
   }
   async destroy() {
-    const { ctx } = this;
+    const { ctx, app } = this;
+    const { params, helper } = ctx;
+    const errors = app.validator.validate({
+      code: { type: 'string' },
+    }, params);
+    const hasValidationError = !!errors;
+    if (hasValidationError) {
+      helper.createFailJSONResponse(ctx, 400, '请求参数不匹配！错误原因:' + JSON.stringify(errors));
+      return;
+    }
+    const { code } = ctx.params;
     try {
-      const { code } = ctx.params;
       await ctx.service.propertyValue.delete(code);
       ctx.helper.createSuccessJSONResponse(ctx, 200);
     } catch (error) {
-      ctx.helper.createFailJSONResponse(ctx, 500, '属性值删除错误');
+      ctx.helper.createFailJSONResponse(ctx, 500, `属性值删除错误！错误原因：${error.toString()}`);
     }
   }
   async update() {

@@ -18,12 +18,12 @@ module.exports = () => {
       enable: false,
     },
   };
-  config.mysql = {
-    clients: {
-      base: baseConfig[currentEnv],
-      comm: commConfig[currentEnv],
-      prod: prodConfig[currentEnv],
-    },
+  config.sequelize = {
+    datasources: [
+      baseConfig[currentEnv],
+      commConfig[currentEnv],
+      prodConfig[currentEnv],
+    ],
   };
 
   return config;
